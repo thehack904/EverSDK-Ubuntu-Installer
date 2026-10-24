@@ -19,7 +19,7 @@
 set -uo pipefail
 IFS=$'\n\t'
 
-SCRIPT_VERSION="1.1.16"
+SCRIPT_VERSION="1.0.0"
 
 EVERSDK_REPO="https://github.com/JohnnyonFlame/EverSDK.git"
 SRC_ROOT="${HOME}/src"

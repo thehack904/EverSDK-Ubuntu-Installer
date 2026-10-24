@@ -4,9 +4,9 @@
 
 | Ubuntu release | Installer | Result | Notes |
 | --- | --- | --- | --- |
-| 22.04.5 LTS | 1.1.x | PASS | Standard host compiler/tooling path |
-| 24.04.5 LTS | 1.1.x | PASS | Standard host compiler/tooling path |
-| 26.04.1 LTS | 1.1.15+ | PASS | Uses isolated GCC 13, GNU Make 4.3, bounded crosstool-NG jobs, and CMake policy compatibility |
+| 22.04.5 LTS | 1.0.0 | PASS | Standard host compiler/tooling path |
+| 24.04.5 LTS | 1.0.0 | PASS | Standard host compiler/tooling path |
+| 26.04.1 LTS | 1.0.0 | PASS | Uses isolated GCC 13, GNU Make 4.3, bounded crosstool-NG jobs, and CMake policy compatibility |
 
 ## Successful validation criteria
 

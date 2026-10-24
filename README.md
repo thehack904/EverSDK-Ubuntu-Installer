@@ -88,7 +88,7 @@ EverSDK and all third-party components remain subject to their respective upstre
 
 ## Project status
 
-Current installer version: **1.1.16**
+Current installer version: **1.0.0**
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the tested platform matrix.
 
