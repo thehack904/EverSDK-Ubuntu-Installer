@@ -32,6 +32,11 @@ versioning begins with v1.0.0.
 - Reports CPU, CPU topology, memory, swap, available disk space, planned build
   parallelism, and a conservative build-time estimate.
 - Requires explicit user confirmation before beginning downloads or compilation.
+- Uses the standalone state directory
+  `~/.local/state/eversdk-ubuntu-installer`.
+- Safely migrates state from the pre-release development path
+  `~/.local/state/commander-keen-evercade/eversdk-installer`, preserving
+  backups, logs, package-ownership history, and last-success metadata.
 
 ## Pre-release Development History
 

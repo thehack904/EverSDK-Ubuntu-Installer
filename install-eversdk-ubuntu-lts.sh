@@ -25,7 +25,8 @@ EVERSDK_REPO="https://github.com/JohnnyonFlame/EverSDK.git"
 SRC_ROOT="${HOME}/src"
 EVERSDK_DIR="${SRC_ROOT}/EverSDK"
 
-STATE_ROOT="${HOME}/.local/state/commander-keen-evercade/eversdk-installer"
+STATE_ROOT="${HOME}/.local/state/eversdk-ubuntu-installer"
+LEGACY_STATE_ROOT="${HOME}/.local/state/commander-keen-evercade/eversdk-installer"
 BACKUP_DIR="${STATE_ROOT}/backups"
 LOG_DIR="${STATE_ROOT}/logs"
 INTRODUCED_PACKAGES_FILE="${STATE_ROOT}/apt-packages-introduced.txt"
@@ -111,7 +112,77 @@ check_host() {
   return 0
 }
 
+migrate_legacy_state() {
+  local legacy_parent="${HOME}/.local/state/commander-keen-evercade"
+  local legacy_pkg_file="${LEGACY_STATE_ROOT}/apt-packages-introduced.txt"
+  local tmp_pkg_file
+
+  [[ -d "$LEGACY_STATE_ROOT" ]] || return 0
+
+  printf '\nLegacy EverSDK installer state detected:\n'
+  printf '  %s\n' "$LEGACY_STATE_ROOT"
+  printf 'Migrating to:\n'
+  printf '  %s\n' "$STATE_ROOT"
+
+  # Fast path: if the new state directory does not yet exist, move the entire
+  # legacy tree atomically on the same filesystem.
+  if [[ ! -e "$STATE_ROOT" ]]; then
+    mkdir -p "$(dirname "$STATE_ROOT")"
+    if mv "$LEGACY_STATE_ROOT" "$STATE_ROOT"; then
+      rmdir "$legacy_parent" 2>/dev/null || true
+      printf 'Legacy installer state migration complete.\n'
+      return 0
+    fi
+    printf 'Could not move the legacy state directory directly; attempting a safe merge.\n' >&2
+  fi
+
+  # Merge path: preserve any state already created at the new location and
+  # move legacy files only when they do not overwrite an existing file.
+  mkdir -p "$STATE_ROOT" "$BACKUP_DIR" "$LOG_DIR"
+
+  if [[ -d "${LEGACY_STATE_ROOT}/backups" ]]; then
+    find "${LEGACY_STATE_ROOT}/backups" -maxdepth 1 -type f -name 'EverSDK-*.tar.gz' \
+      -exec mv -n -t "$BACKUP_DIR" -- {} + 2>/dev/null || true
+  fi
+
+  if [[ -d "${LEGACY_STATE_ROOT}/logs" ]]; then
+    find "${LEGACY_STATE_ROOT}/logs" -maxdepth 1 -type f -name 'build-*.log' \
+      -exec mv -n -t "$LOG_DIR" -- {} + 2>/dev/null || true
+  fi
+
+  # Package ownership is safety-critical. Merge both records rather than
+  # allowing either side to replace the other.
+  if [[ -f "$legacy_pkg_file" ]]; then
+    tmp_pkg_file="${STATE_ROOT}/.apt-packages-introduced.merge.$$"
+    {
+      [[ -f "$INTRODUCED_PACKAGES_FILE" ]] && cat "$INTRODUCED_PACKAGES_FILE"
+      cat "$legacy_pkg_file"
+    } | sed '/^[[:space:]]*$/d' | sort -u > "$tmp_pkg_file"
+    mv "$tmp_pkg_file" "$INTRODUCED_PACKAGES_FILE"
+    rm -f "$legacy_pkg_file"
+  fi
+
+  # Preserve the newest-location metadata if both exist. Otherwise carry the
+  # legacy success record forward.
+  if [[ -f "${LEGACY_STATE_ROOT}/last-success.txt" && ! -e "$LAST_SUCCESS_FILE" ]]; then
+    mv "${LEGACY_STATE_ROOT}/last-success.txt" "$LAST_SUCCESS_FILE"
+  fi
+
+  rmdir "${LEGACY_STATE_ROOT}/backups" 2>/dev/null || true
+  rmdir "${LEGACY_STATE_ROOT}/logs" 2>/dev/null || true
+  rmdir "$LEGACY_STATE_ROOT" 2>/dev/null || true
+  rmdir "$legacy_parent" 2>/dev/null || true
+
+  if [[ -d "$LEGACY_STATE_ROOT" ]]; then
+    printf 'WARNING: Some legacy state files remain at:\n  %s\n' "$LEGACY_STATE_ROOT" >&2
+    printf 'They were left in place rather than overwritten or deleted.\n' >&2
+  else
+    printf 'Legacy installer state migration complete.\n'
+  fi
+}
+
 ensure_state_dirs() {
+  migrate_legacy_state
   mkdir -p "$SRC_ROOT" "$BACKUP_DIR" "$LOG_DIR"
   touch "$INTRODUCED_PACKAGES_FILE"
 }
@@ -1040,6 +1111,8 @@ show_status() {
   local pkg commit branch backup_count log_count
   local -a introduced=()
 
+  migrate_legacy_state
+
   hr
   printf 'EverSDK installer status\n'
   hr
@@ -1121,6 +1194,8 @@ remove_eversdk() {
   local answer purge_answer pkg
   local -a introduced=()
   local -a purgeable=()
+
+  migrate_legacy_state
 
   hr
   printf 'Remove EverSDK and installer-created files\n'
@@ -1211,7 +1286,6 @@ remove_eversdk() {
   # Remove state directories only when the ownership record no longer exists.
   if [[ ! -e "$INTRODUCED_PACKAGES_FILE" ]]; then
     rmdir "$STATE_ROOT" 2>/dev/null || true
-    rmdir "${HOME}/.local/state/commander-keen-evercade" 2>/dev/null || true
   fi
 
   # Never remove a non-empty user source directory.

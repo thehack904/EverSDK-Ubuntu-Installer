@@ -48,7 +48,19 @@ EverSDK is installed at:
 ~/src/EverSDK
 ```
 
-Build logs, backups, and installer state are stored under the user's local state directory.
+Build logs, backups, package-ownership records, and installer state are stored under:
+
+```text
+~/.local/state/eversdk-ubuntu-installer
+```
+
+Development versions of this installer used the legacy state path:
+
+```text
+~/.local/state/commander-keen-evercade/eversdk-installer
+```
+
+If that legacy directory is detected, v1.0.0 migrates its backups, build logs, package-ownership record, and last-success metadata to the standalone state location. Existing files at the new location are preserved rather than overwritten.
 
 ## Safety and rollback design
 
